@@ -13,25 +13,67 @@ app.use(express.json());
 // const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.vsocy.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.weuxy.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-console.log(uri);
 async function run() {
     try {
         await client.connect();
         const database = client.db('travel-point');
         const serviceCollection = database.collection('places');
-        const myOrderCollection = database.collection('usersBooking');
+        const myOrderCollection = database.collection('usersOrders');
         console.log('database connected');
-        // inserting data 
-        app.get('/places', async (req, res) => {
-            const result = await serviceCollection.insertMany(places);
-            console.log(`${result.insertedCount} documents were inserted`);
-            res.send('Travel server is running');
-        })
+        // // inserting data 
+        // app.get('/places', async (req, res) => {
+        //     const result = await serviceCollection.insertMany(places);
+        //     console.log(`${result.insertedCount} documents were inserted`);
+        //     res.send('Travel server is running');
+        // })
         // getting from database 
         app.get('/services', async (req, res) => {
             const cursor = serviceCollection.find({})
             const services = await cursor.toArray();
             res.send(services)
+        });
+        // GET SINGLE API
+        app.get('/services/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const query = { _id: ObjectId(id) };
+            const service = await serviceCollection.findOne(query);
+            res.json(service)
+        })
+        // Load data according to user id get api
+        app.get('/cart/:uid', async (req, res) => {
+            const uid = req.params.uid;
+            const query = { uid: uid };
+            const result = await myOrderCollection.find(query).toArray();
+            res.json(result);
+        })
+
+
+        // add data to cart collection with additional info
+        app.post('/booking/add', async (req, res) => {
+            const booking = req.body;
+            console.log(booking);
+            const result = await myOrderCollection.insertOne(booking)
+            res.json(result)
+        })
+        // Post
+        app.post('/services', async (req, res) => {
+            const service = req.body;
+            //    console.log('hitting the dating', service);
+
+            const result = await serviceCollection.insertOne(service);
+            // console.log(result);
+            res.json(result)
+            console.log(result);
+        });
+
+        // delete one item
+        app.delete('/booking/add/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await myOrderCollection.deleteOne(query);
+            res.json(result);
+            console.log(result);
         });
     }
     finally {
